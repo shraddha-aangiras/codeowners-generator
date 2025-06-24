@@ -3,9 +3,49 @@ package utils
 import (
 	"fmt"
 	"os"
+	"regexp"
+	"strconv"
+	"strings"
 	"time"
+
 	"github.com/urfave/cli/v2"
 )
+
+// parseFlexibleDuration parses durations like "1w2d3h" into time.Duration
+func parseFlexibleDuration(input string) (time.Duration, error) {
+	re := regexp.MustCompile(`(?i)(\d+)([wdhms])`)
+	matches := re.FindAllStringSubmatch(input, -1)
+
+	if len(matches) == 0 {
+		return 0, fmt.Errorf("invalid duration format: %s", input)
+	}
+
+	var total time.Duration
+	for _, match := range matches {
+		valStr, unit := match[1], strings.ToLower(match[2])
+		val, err := strconv.Atoi(valStr)
+		if err != nil {
+			return 0, err
+		}
+
+		switch unit {
+		case "w":
+			total += time.Duration(val) * 7 * 24 * time.Hour
+		case "d":
+			total += time.Duration(val) * 24 * time.Hour
+		case "h":
+			total += time.Duration(val) * time.Hour
+		case "m":
+			total += time.Duration(val) * time.Minute
+		case "s":
+			total += time.Duration(val) * time.Second
+		default:
+			return 0, fmt.Errorf("unknown time unit: %s", unit)
+		}
+	}
+
+	return total, nil
+}
 
 func ParseArgs() (string, string, string, string, time.Duration, int, error) {
 	var (
@@ -13,7 +53,8 @@ func ParseArgs() (string, string, string, string, time.Duration, int, error) {
 		organizationName   string
 		repositoryName     string
 		githubToken        string
-		duration           time.Duration
+		durationInput      string
+		parsedDuration     time.Duration
 		codeReviewersCount int
 	)
 
@@ -46,11 +87,11 @@ func ParseArgs() (string, string, string, string, time.Duration, int, error) {
 				Usage:    "GitHub personal access token",
 				Required: true,
 			},
-			&cli.DurationFlag{
+			&cli.StringFlag{
 				Name:    "duration",
 				EnvVars: []string{"DURATION"},
-				Value:   time.Hour * 24 * 30,
-				Usage:   "Duration to look back for contributions (e.g., 720h = 30d)",
+				Value:   "30d", // default = 30 days
+				Usage:   "Lookback duration for commits (e.g. 2w3d5h)",
 			},
 			&cli.IntFlag{
 				Name:    "code-reviewers-count",
@@ -65,18 +106,23 @@ func ParseArgs() (string, string, string, string, time.Duration, int, error) {
 			organizationName = c.String("organization-name")
 			repositoryName = c.String("repository-name")
 			githubToken = c.String("github-token")
-			duration = c.Duration("duration")
+			durationInput = c.String("duration")
 			codeReviewersCount = c.Int("code-reviewers-count")
+
+			// Custom parsing
+			var err error
+			parsedDuration, err = parseFlexibleDuration(durationInput)
+			if err != nil {
+				return cli.Exit(fmt.Sprintf("invalid value %q for flag -duration: parse error", durationInput), 1)
+			}
 			return nil
 		},
 	}
-	
+
 	err := app.Run(os.Args)
 	if err != nil {
 		return "", "", "", "", 0, 0, fmt.Errorf("CLI parse failed: %w", err)
 	}
 
-	return githubServerURL, organizationName, repositoryName, githubToken, duration, codeReviewersCount, nil
+	return githubServerURL, organizationName, repositoryName, githubToken, parsedDuration, codeReviewersCount, nil
 }
-
-

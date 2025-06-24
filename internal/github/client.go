@@ -32,8 +32,6 @@ func NewClient(token, githubServerURL, owner, repo string) *Client {
 
 	client := github.NewClient(tc)
 
-	// To support GitHub Enterprise, you can replace client.BaseURL here with githubServerURL if different from api.github.com
-
 	return &Client{
 		client: client,
 		owner:  owner,
@@ -41,6 +39,7 @@ func NewClient(token, githubServerURL, owner, repo string) *Client {
 	}
 }
 
+// GetTopContributors gets the top contributors for given time duration
 func (c *Client) GetTopContributors(since time.Time) ([]Contributor, error) {
 	ctx := context.Background()
 
@@ -50,7 +49,7 @@ func (c *Client) GetTopContributors(since time.Time) ([]Contributor, error) {
 		Since: since,
 		ListOptions: github.ListOptions{
 			PerPage: 100,
-			Page:    1, // Important: GitHub API pages start at 1
+			Page:    1, 
 		},
 	}
 
@@ -60,13 +59,11 @@ func (c *Client) GetTopContributors(since time.Time) ([]Contributor, error) {
 			return nil, err
 		}
 
-		// Debug print (uncomment if needed)
-		// fmt.Printf("Fetched %d commits from page %d\n", len(commits), opt.Page)
 
 		for _, commit := range commits {
 			commitDate := commit.GetCommit().GetAuthor().GetDate()
 
-			// Extra safety: skip commits older than 'since'
+			// extra (solves possible issue number discrepancy?)
 			if commitDate.Before(since) {
 				fmt.Printf("Skipping commit %s dated %v (before %v)\n", commit.GetSHA(), commitDate, since)
 				continue
