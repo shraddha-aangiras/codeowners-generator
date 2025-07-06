@@ -25,29 +25,29 @@
 
 3. (Optional) Add the binary to your `PATH` for easier usage.
 
+
 ## Usage
 
-Run the tool with the required flags:
+You can use `codeowners-generator` from the command line with the following arguments:
 
 ```bash
 ./codeowners-generator \
-  --organization-name <organization> \
-  --repository-name <repository> \
-  --github-token <token> \
-  --duration <lookback-duration> \
-  --code-reviewers-count <number-of-reviewers>
-```
+  -github-server-url=[https://api.github.com](https://api.github.com) \
+  -organization-name=your-organization \
+  -repository-name=your-repo \
+  -github-token=YOUR_GITHUB_TOKEN \
+  -duration=30d \
+  -code-reviewers-count=3
+  ```
 
-### Example
+## Arguments
 
-```bash
-./codeowners-generator \
-  --organization-name my-org \
-  --repository-name my-repo \
-  --github-token ghp_1234567890abcdef \
-  --duration 30d \
-  --code-reviewers-count 3
-```
+* **`-github-server-url`**: (Optional) The URL for your GitHub server. This defaults to `https://api.github.com`.
+* **`-organization-name`**: Your GitHub organization name.
+* **`-repository-name`**: The name of the repository you want to generate CODEOWNERS for.
+* **`-github-token`**: Your personal access token with `repo` permission. **Remember to replace `YOUR_GITHUB_TOKEN` with your actual token.**
+* **`-duration`**: The time period for contributor analysis (e.g., `30d` for 30 days, `1w` for 1 week). This defaults to `30d`.
+* **`-code-reviewers-count`**: The number of top contributors to include as code owners. This defaults to `3`.
 
 ### Flags
 
